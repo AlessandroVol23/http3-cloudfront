@@ -5,8 +5,8 @@
 
 declare module "sst" {
   export interface Resource {
-    "MyApi": {
-      "type": "sst.aws.ApiGatewayV2"
+    "StaticSiteHttp3": {
+      "type": "sst.aws.StaticSite"
       "url": string
     }
   }

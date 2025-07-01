@@ -3,14 +3,18 @@
 export default $config({
   app(input) {
     return {
-      name: "api-custom-domain",
+      name: "streaming-3",
       removal: input?.stage === "production" ? "retain" : "remove",
       protect: ["production"].includes(input?.stage),
       home: "aws",
     };
   },
   async run() {
-    await import("./infra/api");
-
+    const { cloudfront } = await import("./infra/cloudfront");
+    const { distribution } = await import("./infra/cf3");
+    return {
+      cloudfront: cloudfront.url,
+      distribution: distribution.domainName,
+    };
   },
 });

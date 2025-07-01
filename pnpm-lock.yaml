@@ -24,6 +24,12 @@ importers:
 
   packages/functions:
     dependencies:
+      '@middy/core':
+        specifier: ^6.3.2
+        version: 6.3.2
+      '@middy/http-cors':
+        specifier: ^6.3.2
+        version: 6.3.2
       sst:
         specifier: '*'
         version: 3.17.8
@@ -39,6 +45,18 @@ importers:
         version: 1.0.7
 
 packages:
+
+  '@middy/core@6.3.2':
+    resolution: {integrity: sha512-2mzUPFCIIN5CvD2NC/upFCqx9S3Y1kT+3YEIUnqgHJgrPW2Kw7Oj+HNwpFS1DRr/2Vlx6pFZfwEWDA6EJqXQ9w==}
+    engines: {node: '>=20'}
+
+  '@middy/http-cors@6.3.2':
+    resolution: {integrity: sha512-TqbTG0kjO5KgcFDyXtukYY70b6NIK7JSYF/Ecpg/eMvw5U+Jrc8UJsP8t+pRjPNbEmliREy49uQ3n3NPPGhENQ==}
+    engines: {node: '>=20'}
+
+  '@middy/util@6.3.2':
+    resolution: {integrity: sha512-wM5/zjI6PNKkNxj0GcRyr1DNWNlt4rzBwAT7OmP36f/vDjpD5a0VOaqjmyOQbRcnSsa+jtfbekKHyEav6bOGSQ==}
+    engines: {node: '>=20'}
 
   '@modelcontextprotocol/sdk@1.6.1':
     resolution: {integrity: sha512-oxzMzYCkZHMntzuyerehK3fV6A2Kwh5BD6CGEJSVDU2QNEhfLOptf2X7esQgaHZXHZY0oHmMsOtIDLP71UJXgA==}
@@ -584,6 +602,14 @@ packages:
     resolution: {integrity: sha512-lY7CDW43ECgW9u1TcT3IoXHflywfVqDYze4waEz812jR/bZ8FHDsl7pFQoSZTz5N+2NqRXs8GBwnAwo3ZNxqhQ==}
 
 snapshots:
+
+  '@middy/core@6.3.2': {}
+
+  '@middy/http-cors@6.3.2':
+    dependencies:
+      '@middy/util': 6.3.2
+
+  '@middy/util@6.3.2': {}
 
   '@modelcontextprotocol/sdk@1.6.1':
     dependencies:
