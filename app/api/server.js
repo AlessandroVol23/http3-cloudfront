@@ -2,7 +2,10 @@ const express = require("express");
 
 const app = express();
 
+console.log("initialize server");
+
 app.post("/upload", (req, res) => {
+  console.log("upload");
   res.send("hello world");
 });
 
