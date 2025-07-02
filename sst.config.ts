@@ -10,10 +10,8 @@ export default $config({
     };
   },
   async run() {
-    const { cloudfront } = await import("./infra/cloudfront");
     const { distribution } = await import("./infra/cf3");
     return {
-      cloudfront: cloudfront.url,
       distribution: distribution.domainName,
     };
   },
