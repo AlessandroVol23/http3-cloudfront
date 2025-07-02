@@ -1,0 +1,266 @@
+.app {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+}
+
+h1 {
+  color: #333;
+  margin-bottom: 2rem;
+  font-size: 2.5rem;
+}
+
+.upload-container {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.file-input-container {
+  margin-bottom: 1.5rem;
+}
+
+#file-input {
+  display: none;
+}
+
+.file-input-label {
+  display: inline-block;
+  padding: 12px 24px;
+  background: #007bff;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.file-input-label:hover {
+  background: #0056b3;
+}
+
+.file-input-label:active {
+  transform: translateY(1px);
+}
+
+.file-info {
+  background: #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  text-align: left;
+}
+
+.file-info p {
+  margin: 0.5rem 0;
+  color: #495057;
+}
+
+.upload-button {
+  background: #28a745;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-1px);
+}
+
+.upload-button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Progress Container */
+.progress-container {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+/* Overall Progress */
+.overall-progress {
+  margin-bottom: 2rem;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #20c997);
+  transition: width 0.3s ease;
+  border-radius: 10px;
+}
+
+.progress-text {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: #495057;
+  font-weight: 500;
+}
+
+.failed-chunks {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* Chunk Progress */
+.chunk-progress h4 {
+  margin-bottom: 1rem;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.chunk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 8px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.chunk-status {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chunk-status.pending {
+  background: #6c757d;
+}
+
+.chunk-status.uploading {
+  background: #007bff;
+  animation: pulse 1.5s infinite;
+}
+
+.chunk-status.completed {
+  background: #28a745;
+}
+
+.chunk-status.failed {
+  background: #dc3545;
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+.chunk-status:hover {
+  transform: scale(1.1);
+}
+
+.status {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.status.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.config-info {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: left;
+  border: 1px solid #dee2e6;
+}
+
+.config-info h3 {
+  margin-top: 0;
+  color: #495057;
+  font-size: 1.25rem;
+}
+
+.config-info h4 {
+  margin-bottom: 0.5rem;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.config-info p {
+  margin: 0.5rem 0;
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 1rem;
+  }
+  
+  .upload-container {
+    padding: 1rem;
+  }
+  
+  .progress-container {
+    padding: 1rem;
+  }
+  
+  .chunk-grid {
+    grid-template-columns: repeat(auto-fill, minmax(35px, 1fr));
+    gap: 6px;
+  }
+  
+  .chunk-status {
+    width: 35px;
+    height: 35px;
+    font-size: 0.7rem;
+  }
+  
+  h1 {
+    font-size: 2rem;
+  }
+}

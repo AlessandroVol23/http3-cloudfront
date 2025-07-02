@@ -5,6 +5,14 @@
 
 declare module "sst" {
   export interface Resource {
+    "frontend": {
+      "type": "sst.aws.StaticSite"
+      "url": string
+    }
+    "upload-bucket": {
+      "name": string
+      "type": "sst.aws.Bucket"
+    }
   }
 }
 /// <reference path="sst-env.d.ts" />

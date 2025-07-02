@@ -51,6 +51,13 @@ export const distribution = new aws.cloudfront.Distribution("streaming-3-http3-d
         "User-Agent",
         "X-Forwarded-For",
         "X-Forwarded-Proto",
+        // Additional headers for file uploads
+        "Content-Disposition",
+        "Content-Transfer-Encoding",
+        "X-Requested-With",
+        "Cache-Control",
+        "Origin",
+        "Referer",
       ],
       cookies: {
         forward: "all",
