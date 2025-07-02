@@ -1,0 +1,1 @@
+export const uploadBucket = new sst.aws.Bucket("upload-bucket");
