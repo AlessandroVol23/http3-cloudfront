@@ -100,3 +100,13 @@ sst deploy
 - **CloudFront (HTTP/3)**: `https://d100w0lleku9em.cloudfront.net/upload`
 
 The CloudFront URL provides HTTP/3 support with global edge locations for optimal performance.
+
+# AppRunner
+
+## GitHub Connection
+
+- either use existing connection
+- or create new one
+
+You need to manually finish the handshake
+![](gh-handshake.png)

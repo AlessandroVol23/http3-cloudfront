@@ -1,5 +1,12 @@
 import { uploadBucket } from "./upload-bucket";
 
+
+
+export const githubConnection = new aws.apprunner.Connection("connectionResource", {
+    connectionName: "github-source-connection",
+    providerType: "GITHUB",
+});
+
 // IAM role for App Runner instance (runtime permissions)
 const appRunnerInstanceRole = new aws.iam.Role("apprunner-instance-role", {
   assumeRolePolicy: JSON.stringify({
@@ -8,9 +15,9 @@ const appRunnerInstanceRole = new aws.iam.Role("apprunner-instance-role", {
       {
         Effect: "Allow",
         Principal: {
-          Service: "tasks.apprunner.amazonaws.com",
+            Service: "tasks.apprunner.amazonaws.com"
         },
-        Action: "sts:AssumeRole",
+        Action: "sts:AssumeRole"
       },
     ],
   }),
@@ -47,52 +54,81 @@ new aws.iam.RolePolicyAttachment("apprunner-s3-policy-attachment", {
   policyArn: s3Policy.arn,
 });
 
-// App Runner service
-export const appRunnerService = new aws.apprunner.Service("api-service", {
-  serviceName: "streaming-3-api",
-  sourceConfiguration: {
-    autoDeploymentsEnabled: false,
-    codeRepository: {
-      repositoryUrl: "https://github.com/your-username/your-repo", // Update this with your actual repository
-      sourceCodeVersion: {
-        type: "BRANCH",
-        value: "main",
-      },
-      codeConfiguration: {
-        configurationSource: "API",
-        codeConfigurationValues: {
-          runtime: "NODEJS_18",
-          buildCommand: "cd app/api && npm install",
-          startCommand: "cd app/api && npm start",
-          runtimeEnvironmentVariables: uploadBucket.name.apply(bucketName => ({
-            NODE_ENV: "production",
-            PORT: "8080",
-            AWS_REGION: "us-east-1",
-            BUCKET_NAME: bucketName,
-          })),
-          port: "8080",
-        },
-      },
+export const service = new aws.apprunner.Service("example", {
+    serviceName: "streaming-3-api",
+    instanceConfiguration: {
+        instanceRoleArn: appRunnerInstanceRole.arn,
     },
-  },
-  instanceConfiguration: {
-    cpu: "0.25 vCPU",
-    memory: "0.5 GB",
-    instanceRoleArn: appRunnerInstanceRole.arn,
-  },
-  healthCheckConfiguration: {
-    protocol: "HTTP",
-    path: "/health",
-    interval: 20,
-    timeout: 5,
-    healthyThreshold: 2,
-    unhealthyThreshold: 5,
-  },
-  tags: {
-    Name: "streaming-3-api",
-    Environment: "development",
-  },
+    sourceConfiguration: {
+        authenticationConfiguration: {
+            connectionArn: githubConnection.arn,
+        },
+        codeRepository: {
+            sourceDirectory: "app/api",
+            repositoryUrl: "https://github.com/AlessandroVol23/http3-cloudfront",
+            sourceCodeVersion: {
+                type: "BRANCH",
+                value: "main"
+            },
+            codeConfiguration: {
+                configurationSource: "API",
+                codeConfigurationValues: {
+                    runtime: "NODEJS_18",
+                    buildCommand: "cd app/api && npm install",
+                    startCommand: "cd app/api && npm start",
+                    port: "8080",
+                }
+            }
+        },
+
+    },
+    
 });
 
-// Export the App Runner service URL
-export const appRunnerUrl = appRunnerService.serviceUrl;
+
+// // App Runner service
+// export const appRunnerService = new aws.apprunner.Service("api-service", {
+//   serviceName: "streaming-3-api",
+//   sourceConfiguration: {
+//     autoDeploymentsEnabled: false,
+//     codeRepository: {
+//         // TODO: Make dynamic
+//       repositoryUrl: "https://github.com/AlessandroVol23/http3-cloudfront", // Update this with your actual repository
+//       sourceCodeVersion: {
+//         type: "BRANCH",
+//         value: "main",
+//       },
+//       codeConfiguration: {
+//         configurationSource: "API",
+//         codeConfigurationValues: {
+//           runtime: "NODEJS_18",
+//           buildCommand: "cd app/api && npm install",
+//           startCommand: "cd app/api && npm start",
+//           runtimeEnvironmentVariables: uploadBucket.name.apply(bucketName => ({
+//             NODE_ENV: "production",
+//             PORT: "8080",
+//             AWS_REGION: "us-east-1",
+//             BUCKET_NAME: bucketName,
+//           })),
+//           port: "8080",
+//         },
+//       },
+//     },
+//   },
+//   instanceConfiguration: {
+//     cpu: "0.25 vCPU",
+//     memory: "0.5 GB",
+//     instanceRoleArn: appRunnerInstanceRole.arn,
+//   },
+//   healthCheckConfiguration: {
+//     protocol: "HTTP",
+//     path: "/health",
+//     interval: 20,
+//     timeout: 5,
+//     healthyThreshold: 2,
+//     unhealthyThreshold: 5,
+//   },
+// });
+
+// // Export the App Runner service URL
+// export const appRunnerUrl = appRunnerService.serviceUrl;
