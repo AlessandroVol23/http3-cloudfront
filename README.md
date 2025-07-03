@@ -1,112 +1,217 @@
-# CloudFront HTTP/3 Distribution with App Runner Backend
+# HTTP/3 File Upload with CloudFront and App Runner
 
-This repo implements a CloudFront distribution with HTTP/3 support, forwarding requests to an AWS App Runner backend. The setup provides the fastest possible web connection speeds using the latest HTTP/3 protocol.
+A demonstration application showcasing **HTTP/3 chunked file uploads** using AWS CloudFront, App Runner, and a React frontend. This project demonstrates how to leverage HTTP/3's performance benefits for parallel file uploads while working around App Runner's HTTP/1.1 limitations.
 
-## Architecture
+## What This Application Does
 
-- **CloudFront Distribution** - HTTP/3 enabled CDN with global edge locations
-- **AWS App Runner** - Backend service running Express.js application
-- **No Caching** - All requests forwarded directly to origin for dynamic content
+This application enables **high-performance file uploads** by:
+- **Chunking large files** into smaller pieces (5MB each)
+- **Uploading chunks in parallel** using HTTP/3's multiplexing capabilities
+- **Automatic protocol translation** from HTTP/3 to HTTP/1.1 for backend compatibility
+- **Real-time progress tracking** for each chunk upload
 
-## Protocol Support
+## Architecture Overview
 
-- ✅ **HTTP/3** - Primary protocol (fastest, uses QUIC over UDP)
-- ❌ **HTTP/2** - Disabled  
-- ✅ **HTTP/1.1** - Fallback for older clients
+```
+[React Frontend] --HTTP/3--> [CloudFront] --HTTP/1.1--> [App Runner] --> [S3 Bucket]
+```
+
+### Infrastructure Components
+
+#### 1. **S3 Bucket** (`infra/upload-bucket.ts`)
+Stores all uploaded file chunks.
+
+```typescript
+export const uploadBucket = new sst.aws.Bucket("upload-bucket");
+```
+
+#### 2. **App Runner Service** (`infra/apprunner.ts`)
+- **Runtime**: Node.js 18 Express API
+- **Protocol**: HTTP/1.1 only (App Runner limitation)
+- **Function**: Receives file chunks and uploads them to S3
+- **IAM Permissions**: Full S3 access for the upload bucket
+
+```typescript
+export const apprunnerService = new aws.apprunner.Service("http3-streaming-api", {
+    serviceName: "streaming-3-api",
+    sourceConfiguration: {
+        codeRepository: {
+            sourceDirectory: "app/api",
+            codeConfiguration: {
+                configurationValues: {
+                    runtime: "NODEJS_18",
+                    buildCommand: "npm install",
+                    startCommand: "npm run start",
+                    port: "8080",
+                    runtimeEnvironmentVariables: {
+                        BUCKET_NAME: uploadBucket.name,
+                    }
+                }
+            }
+        }
+    }
+});
+```
+
+#### 3. **CloudFront Distribution** (`infra/cloudfront.ts`)
+- **HTTP/3 Support**: Enabled for fastest upload speeds
+- **Protocol Translation**: HTTP/3 → HTTP/1.1 to App Runner
+- **Caching**: Disabled (TTL=0) for dynamic upload requests
+- **Headers**: Forwards all necessary headers for file uploads
+
+```typescript
+export const cfDistribution = new aws.cloudfront.Distribution("http3-distribution", {
+    httpVersion: "http3",
+    defaultCacheBehavior: {
+        allowedMethods: ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+        compress: false,
+        minTtl: 0,
+        defaultTtl: 0, // No caching
+        maxTtl: 0,
+        forwardedValues: {
+            headers: [
+                "Content-Type", "Content-Length", "Authorization",
+                "Content-Disposition", "Content-Transfer-Encoding"
+            ]
+        }
+    }
+});
+```
+
+#### 4. **React Frontend** (`app/frontend-upload-files/`)
+- **Chunking**: Splits files into 5MB chunks
+- **Parallel Uploads**: Uses `Promise.all()` for concurrent chunk uploads
+- **Progress Tracking**: Real-time progress bar and chunk status
+- **HTTP/3 Detection**: Instructions for verifying HTTP/3 usage
+
+```typescript
+// File chunking logic
+const createFileChunks = (file: File): ChunkInfo[] => {
+    const chunks: ChunkInfo[] = []
+    const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
+    
+    for (let i = 0; i < totalChunks; i++) {
+        const start = i * CHUNK_SIZE
+        const end = Math.min(start + CHUNK_SIZE, file.size)
+        chunks.push({
+            chunk: file.slice(start, end),
+            index: i,
+            totalChunks,
+            fileName: file.name
+        })
+    }
+    return chunks
+}
+
+// Parallel upload
+const uploadPromises = chunks.map(chunkInfo => uploadChunk(chunkInfo))
+await Promise.all(uploadPromises)
+```
+
+## How It Works
+
+1. **File Selection**: User selects a file in the React frontend
+2. **Chunking**: File is split into 5MB chunks
+3. **Parallel Upload**: All chunks uploaded simultaneously via HTTP/3
+4. **Protocol Translation**: CloudFront converts HTTP/3 to HTTP/1.1
+5. **S3 Storage**: App Runner receives chunks and stores them in S3
+6. **Progress Tracking**: Real-time updates show chunk completion status
+
+## Common Problems & Solutions
+
+### Problem 1: App Runner HTTP/3 Limitation
+**Issue**: App Runner only supports HTTP/1.1, not HTTP/3 or HTTP/2.
+
+**Solution**: Use CloudFront as a protocol translator:
+- Client → CloudFront: HTTP/3 (fast, multiplexed)
+- CloudFront → App Runner: HTTP/1.1 (compatible)
+
+### Problem 2: Header Forwarding
+**Issue**: CloudFront doesn't forward all headers by default.
+
+**Solution**: Explicitly configure header forwarding in CloudFront:
+```typescript
+forwardedValues: {
+    headers: [
+        "Content-Type", "Content-Length", "Authorization",
+        "Content-Disposition", "Content-Transfer-Encoding"
+    ]
+}
+```
+
+### Problem 3: CORS for Browser Uploads
+**Issue**: Browser blocks cross-origin requests.
+
+**Solution**: Configure CORS in the Express API:
+```javascript
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    next();
+});
+```
+
+### Problem 4: Node.js Version Limitations in Pulumi
+**Issue**: Pulumi's AWS provider has outdated Node.js runtime options for App Runner, only supporting up to Node.js 18.
+
+**Current Limitation**: While AWS App Runner supports Node.js 22, Pulumi's type definitions only include:
+- `NODEJS_12`, `NODEJS_14`, `NODEJS_16`, `NODEJS_18`
+
+**Workaround**: Use Node.js 18 for now:
+```typescript
+codeConfigurationValues: {
+    runtime: "NODEJS_18", // Would prefer NODEJS_22 but not supported yet
+    buildCommand: "npm install",
+    startCommand: "npm run start",
+    port: "8080"
+}
+```
+
+**Status**: [Issue opened](https://github.com/pulumi/pulumi-aws/issues/5648) with Pulumi to update Node.js runtime options.
 
 ## Testing HTTP/3
 
-### Method 1: Using quiche-client (Recommended)
+### Method 1: Browser DevTools
+1. Open DevTools (F12) → Network tab
+2. Upload a file through the React frontend
+3. Look for "h3" or "HTTP/3" in the Protocol column
+4. You'll see multiple parallel requests for chunked uploads
 
-Install Cloudflare's HTTP/3 client:
+### Method 2: Command Line Testing
 ```bash
+# Install HTTP/3 client
 brew install cloudflare-quiche
-```
 
-Test HTTP/3 connection:
-```bash
-# Basic test
-quiche-client --method POST https://d100w0lleku9em.cloudfront.net/upload
+# Test HTTP/3 connection
+quiche-client --method POST https://your-cloudfront-url.cloudfront.net/upload
 
-# Detailed JSON output
-quiche-client --method POST --dump-json https://d100w0lleku9em.cloudfront.net/upload
-```
-
-### Method 2: Using curl (HTTP/1.1 fallback)
-
-Regular curl will fall back to HTTP/1.1 since most curl builds don't have HTTP/3 support:
-```bash
-curl -v -X POST https://d100w0lleku9em.cloudfront.net/upload
-```
-
-### Method 3: Browser Testing
-
-Modern browsers with HTTP/3 support:
-- **Chrome**: Enable `chrome://flags/#enable-quic`
-- **Firefox**: Set `network.http.http3.enabled` to `true` in `about:config`
-- **Safari**: HTTP/3 supported in recent versions
-
-Check browser dev tools > Network tab > Protocol column to see "h3" for HTTP/3 connections.
-
-## How to Detect HTTP/3 is Working
-
-### 1. Check Alt-Svc Header
-HTTP/3 is advertised via the `Alt-Svc` header:
-```
-Alt-Svc: h3=":443"; ma=86400
-```
-This tells clients that HTTP/3 is available on port 443.
-
-### 2. Protocol Identification
-
-**HTTP/3 (quiche-client)**:
-- Request uses HTTP/3 frame format: `:method`, `:scheme`, `:authority`, `:path`
-- Response status: `:status: 200`
-
-**HTTP/1.1 (curl fallback)**:
-- Request: `POST /upload HTTP/1.1`
-- Response: `HTTP/1.1 200 OK`
-
-### 3. Connection Details
-
-**HTTP/3 Success Indicators**:
-- Uses QUIC protocol (UDP-based)
-- Faster connection establishment
-- Built-in encryption (no separate TLS handshake)
-- Better performance on mobile/poor networks
-
-**HTTP/1.1 Fallback Indicators**:
-- Uses TCP connection
-- Separate TLS handshake visible in verbose output
-- `ALPN: server did not agree on a protocol. Uses default.`
-
-## Expected Response
-
-Both HTTP/3 and HTTP/1.1 should return:
-```
-hello world
+# Detailed output
+quiche-client --method POST --dump-json https://your-cloudfront-url.cloudfront.net/upload
 ```
 
 ## Deployment
 
-Deploy the CloudFront distribution:
 ```bash
+# Deploy all infrastructure
 sst deploy
+
+# The deployment will output:
+# - CloudFront URL (HTTP/3 enabled)
+# - App Runner URL (HTTP/1.1 only)
+# - S3 Bucket name
 ```
 
-## Endpoints
+## Performance Benefits
 
-- **Direct App Runner**: `https://nrfzytm7by.us-east-1.awsapprunner.com/upload`
-- **CloudFront (HTTP/3)**: `https://d100w0lleku9em.cloudfront.net/upload`
+- **HTTP/3 Multiplexing**: Upload multiple chunks simultaneously without head-of-line blocking
+- **Reduced Latency**: QUIC protocol eliminates multiple round trips
+- **Better Mobile Performance**: UDP-based transport handles poor network conditions better
+- **Parallel Processing**: Multiple chunks processed concurrently by App Runner
 
-The CloudFront URL provides HTTP/3 support with global edge locations for optimal performance.
+## Key Files
 
-# AppRunner
-
-## GitHub Connection
-
-- either use existing connection
-- or create new one
-
-You need to manually finish the handshake
-![](gh-handshake.png)
+- `app/api/server.js` - Express API with chunked upload handling
+- `app/frontend-upload-files/src/App.tsx` - React frontend with chunking logic
+- `infra/cloudfront.ts` - CloudFront configuration with HTTP/3 support
+- `infra/apprunner.ts` - App Runner service configuration
