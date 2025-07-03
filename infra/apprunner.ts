@@ -1,5 +1,11 @@
 import { uploadBucket } from "./upload-bucket";
 
+// Update this where the repository is located
+const REPOSITORY_URL = "https://github.com/AlessandroVol23/http3-cloudfront";
+
+// The connection to establish a connection between AppRunner and GitHub
+// ⚠️ Handshake needs to be done manually
+// If you have an existing connection you can also reuse it
 export const githubConnection = new aws.apprunner.Connection("connectionResource", {
     connectionName: "github-source-connection",
     providerType: "GITHUB",
@@ -63,8 +69,7 @@ export const apprunnerService = new aws.apprunner.Service("http3-streaming-api",
         },
         codeRepository: {
             sourceDirectory: "app/api",
-            // TODO: Make dynamic
-            repositoryUrl: "https://github.com/AlessandroVol23/http3-cloudfront",
+            repositoryUrl: REPOSITORY_URL,
             sourceCodeVersion: {
                 type: "BRANCH",
                 value: "main"
