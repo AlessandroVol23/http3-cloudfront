@@ -12,13 +12,13 @@ export default $config({
   async run() {
     const { distribution } = await import("./infra/cf3");
     const { uploadBucket } = await import("./infra/upload-bucket");
+    await import("./infra/apprunner");
+    await import("./infra/cloudfront");
     const { frontend } = await import("./infra/frontend");
-    const { service } = await import("./infra/apprunner");
     return {
       distribution: distribution.domainName,
       uploadBucket: uploadBucket.name,
       frontend: frontend.url,
-      appRunnerService: service.serviceUrl,
     };
   },
 });

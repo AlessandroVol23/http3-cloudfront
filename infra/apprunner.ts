@@ -1,7 +1,5 @@
 import { uploadBucket } from "./upload-bucket";
 
-
-
 export const githubConnection = new aws.apprunner.Connection("connectionResource", {
     connectionName: "github-source-connection",
     providerType: "GITHUB",
@@ -54,7 +52,7 @@ new aws.iam.RolePolicyAttachment("apprunner-s3-policy-attachment", {
   policyArn: s3Policy.arn,
 });
 
-export const service = new aws.apprunner.Service("example", {
+export const apprunnerService = new aws.apprunner.Service("http3-streaming-api", {
     serviceName: "streaming-3-api",
     instanceConfiguration: {
         instanceRoleArn: appRunnerInstanceRole.arn,
@@ -65,6 +63,7 @@ export const service = new aws.apprunner.Service("example", {
         },
         codeRepository: {
             sourceDirectory: "app/api",
+            // TODO: Make dynamic
             repositoryUrl: "https://github.com/AlessandroVol23/http3-cloudfront",
             sourceCodeVersion: {
                 type: "BRANCH",
@@ -74,61 +73,12 @@ export const service = new aws.apprunner.Service("example", {
                 configurationSource: "API",
                 codeConfigurationValues: {
                     runtime: "NODEJS_18",
-                    buildCommand: "cd app/api && npm install",
-                    startCommand: "cd app/api && npm start",
+                    buildCommand: "npm install",
+                    startCommand: "npm run start",
                     port: "8080",
                 }
             }
         },
 
-    },
-    
+    }, 
 });
-
-
-// // App Runner service
-// export const appRunnerService = new aws.apprunner.Service("api-service", {
-//   serviceName: "streaming-3-api",
-//   sourceConfiguration: {
-//     autoDeploymentsEnabled: false,
-//     codeRepository: {
-//         // TODO: Make dynamic
-//       repositoryUrl: "https://github.com/AlessandroVol23/http3-cloudfront", // Update this with your actual repository
-//       sourceCodeVersion: {
-//         type: "BRANCH",
-//         value: "main",
-//       },
-//       codeConfiguration: {
-//         configurationSource: "API",
-//         codeConfigurationValues: {
-//           runtime: "NODEJS_18",
-//           buildCommand: "cd app/api && npm install",
-//           startCommand: "cd app/api && npm start",
-//           runtimeEnvironmentVariables: uploadBucket.name.apply(bucketName => ({
-//             NODE_ENV: "production",
-//             PORT: "8080",
-//             AWS_REGION: "us-east-1",
-//             BUCKET_NAME: bucketName,
-//           })),
-//           port: "8080",
-//         },
-//       },
-//     },
-//   },
-//   instanceConfiguration: {
-//     cpu: "0.25 vCPU",
-//     memory: "0.5 GB",
-//     instanceRoleArn: appRunnerInstanceRole.arn,
-//   },
-//   healthCheckConfiguration: {
-//     protocol: "HTTP",
-//     path: "/health",
-//     interval: 20,
-//     timeout: 5,
-//     healthyThreshold: 2,
-//     unhealthyThreshold: 5,
-//   },
-// });
-
-// // Export the App Runner service URL
-// export const appRunnerUrl = appRunnerService.serviceUrl;
