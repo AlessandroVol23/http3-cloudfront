@@ -81,6 +81,10 @@ export const apprunnerService = new aws.apprunner.Service("http3-streaming-api",
                     buildCommand: "npm install",
                     startCommand: "npm run start",
                     port: "8080",
+                    runtimeEnvironmentVariables: {
+                        BUCKET_NAME: uploadBucket.name,
+                        AWS_REGION: "us-east-1",
+                    }
                 }
             }
         },

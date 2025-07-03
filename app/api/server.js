@@ -7,8 +7,13 @@ const app = express();
 
 console.log("initialize server");
 
-// Hard-coded bucket name
-const BUCKET_NAME = "streaming-3-alessandrovolpicella-uploadbucketbucket-bbzmvtbu";
+// Get bucket name from environment variable
+const BUCKET_NAME = process.env.BUCKET_NAME;
+
+if (!BUCKET_NAME) {
+  console.error("BUCKET_NAME environment variable is required");
+  process.exit(1);
+}
 
 // Initialize S3 client
 const s3Client = new S3Client({
