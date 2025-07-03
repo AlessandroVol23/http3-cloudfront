@@ -170,6 +170,33 @@ codeConfigurationValues: {
 
 **Status**: [Issue opened](https://github.com/pulumi/pulumi-aws/issues/5648) with Pulumi to update Node.js runtime options.
 
+### Problem 5: App Runner Initial Deployment Failures
+**Issue**: App Runner service creation sometimes fails on initial deployment, getting stuck in `CREATE_FAILED` state due to incomplete GitHub connection handshake.
+
+**Error Messages**:
+```
+Error: waiting for App Runner Service create: unexpected state 'CREATE_FAILED', 
+wanted target 'RUNNING'. last error: %!s(<nil>): provider=aws@6.66.2
+```
+
+**App Runner Logs**:
+```
+[AppRunner] Deployment with ID : 0de2f1380b1541b39ee8cb2e8c59eb22 failed. 
+Failure reason : Failed to access source code.
+```
+
+**Root Cause**: The GitHub connection handshake is not completed during the first deployment.
+
+**Workaround**: 
+1. Go to **App Runner Connections** in the AWS Console
+2. Find your GitHub connection and complete the handshake
+3. Ensure your GitHub App has access to the repository defined in your source code
+4. Redeploy with `sst deploy`
+
+**Important**: Make sure to update the repository URL in your source code configuration - it's currently hardcoded and must match your actual repository.
+
+![](create-failed.png)
+
 ## Testing HTTP/3
 
 ### Method 1: Browser DevTools
