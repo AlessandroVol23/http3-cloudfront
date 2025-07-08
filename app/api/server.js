@@ -1,6 +1,6 @@
 const express = require("express");
 const multer = require("multer");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 
 const app = express();
 
@@ -125,6 +125,73 @@ app.post("/upload/:key", upload.single('file'), async (req, res) => {
       error: "Failed to upload file",
       details: error.message
     });
+  }
+});
+
+// Download endpoint
+app.get("/download/:key(*)", async (req, res) => {
+  try {
+    // Extract the key from the URL parameter (allowing slashes)
+    const downloadKey = req.params.key;
+    
+    console.log(`Download request for key: ${downloadKey}`);
+    
+    // S3 download parameters
+    const downloadParams = {
+      Bucket: BUCKET_NAME,
+      Key: downloadKey,
+    };
+
+    // Get object from S3
+    const command = new GetObjectCommand(downloadParams);
+    const result = await s3Client.send(command);
+    
+    // Set appropriate headers
+    res.setHeader('Content-Type', result.ContentType || 'application/octet-stream');
+    res.setHeader('Content-Length', result.ContentLength || 0);
+    
+    // Get original filename from metadata if available
+    const originalName = result.Metadata?.originalName;
+    if (originalName) {
+      res.setHeader('Content-Disposition', `attachment; filename="${originalName}"`);
+    } else {
+      // Fallback to using the key as filename
+      const filename = downloadKey.split('/').pop() || downloadKey;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    }
+
+    // Stream the file data to the response
+    const stream = result.Body;
+    if (stream instanceof require('stream').Readable) {
+      stream.pipe(res);
+    } else {
+      // Handle case where Body is not a readable stream
+      const chunks = [];
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+      const buffer = Buffer.concat(chunks);
+      res.send(buffer);
+    }
+    
+    console.log(`Download successful for key: ${downloadKey}`);
+
+  } catch (error) {
+    console.error("Download error:", error);
+    
+    if (error.name === 'NoSuchKey') {
+      res.status(404).json({
+        success: false,
+        error: "File not found",
+        key: req.params.key
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: "Failed to download file",
+        details: error.message
+      });
+    }
   }
 });
 
