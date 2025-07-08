@@ -7,6 +7,7 @@ export const frontend = new sst.aws.StaticSite("frontend", {
     output: "dist",
   },
   environment: {
-    VITE_CLOUDFRONT_URL: $interpolate`https://${cfDistribution.domainName}`,
+    // Assuming we only have one alias here. But I'm pretty sure typically this is shared in another way not via the CF Alias.
+    VITE_CLOUDFRONT_URL: $interpolate`https://${cfDistribution.aliases[0]}`,
   },
 });
