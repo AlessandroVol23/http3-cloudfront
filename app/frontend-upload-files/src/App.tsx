@@ -18,6 +18,10 @@ interface UploadProgress {
 
 function App() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [uploadKey, setUploadKey] = useState<string>('')
+  const [downloading, setDownloading] = useState(false)
+  const [downloadKey, setDownloadKey] = useState<string>('')
+  const [downloadStatus, setDownloadStatus] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [uploadStatus, setUploadStatus] = useState<string>('')
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
@@ -42,7 +46,19 @@ function App() {
       setSelectedFile(file)
       setUploadStatus('')
       setUploadProgress(null)
+      // Auto-generate a key if none is provided
+      if (!uploadKey) {
+        setUploadKey(`${Date.now()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`)
+      }
     }
+  }
+
+  const handleKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadKey(event.target.value)
+  }
+
+  const handleDownloadKeyChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setDownloadKey(event.target.value)
   }
 
   const createFileChunks = (file: File): ChunkInfo[] => {
@@ -76,7 +92,8 @@ function App() {
     formData.append('fileName', chunkInfo.fileName)
     formData.append('fileId', chunkInfo.fileId)
 
-    const uploadUrl = `${cloudFrontUrl}/upload`
+    // Use the upload key in the URL
+    const uploadUrl = `${cloudFrontUrl}/upload/${encodeURIComponent(uploadKey)}`
     
     const response = await fetch(uploadUrl, {
       method: 'POST',
@@ -94,6 +111,11 @@ function App() {
   const handleUpload = async () => {
     if (!selectedFile) {
       setUploadStatus('Please select a file first')
+      return
+    }
+
+    if (!uploadKey.trim()) {
+      setUploadStatus('Please provide an upload key')
       return
     }
 
@@ -158,11 +180,77 @@ function App() {
       setUploadStatus(`Upload successful! All ${chunks.length} chunks uploaded.`)
       console.log('All chunks uploaded successfully')
       
+      // Auto-populate download key with the upload key for easy testing
+      setDownloadKey(uploadKey)
+      
     } catch (error) {
       console.error('Upload error:', error)
       setUploadStatus(`Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleDownload = async () => {
+    if (!downloadKey.trim()) {
+      setDownloadStatus('Please enter a key to download')
+      return
+    }
+
+    if (!cloudFrontUrl) {
+      setDownloadStatus('CloudFront URL not configured')
+      return
+    }
+
+    setDownloading(true)
+    setDownloadStatus('Downloading...')
+
+    try {
+      const downloadUrl = `${cloudFrontUrl}/download/${encodeURIComponent(downloadKey)}`
+      
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('File not found')
+        }
+        const errorText = await response.text()
+        throw new Error(`Download failed: ${response.status} - ${errorText}`)
+      }
+
+      // Get the filename from the Content-Disposition header or use the key
+      const disposition = response.headers.get('Content-Disposition')
+      let filename = downloadKey.split('/').pop() || downloadKey
+      
+      if (disposition && disposition.includes('filename=')) {
+        const filenameMatch = disposition.match(/filename="([^"]*)"/)
+        if (filenameMatch) {
+          filename = filenameMatch[1]
+        }
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob()
+      
+      // Create a download link and trigger the download
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+
+      setDownloadStatus('Download successful!')
+      
+    } catch (error) {
+      console.error('Download error:', error)
+      setDownloadStatus(`Download error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setDownloading(false)
     }
   }
 
@@ -193,11 +281,30 @@ function App() {
           </label>
         </div>
 
+        <div className="key-input-container">
+          <label htmlFor="upload-key" className="key-input-label">
+            Upload Key (will be used as S3 key):
+          </label>
+          <input
+            type="text"
+            id="upload-key"
+            value={uploadKey}
+            onChange={handleKeyChange}
+            disabled={uploading}
+            placeholder="e.g., documents/my-file.pdf or images/photo-2024.jpg"
+            className="key-input"
+          />
+          <small className="key-input-hint">
+            This key will be used directly as the S3 object key. Use forward slashes (/) to create folder-like structure.
+          </small>
+        </div>
+
         {selectedFile && (
           <div className="file-info">
             <p><strong>Selected file:</strong> {selectedFile.name}</p>
             <p><strong>Size:</strong> {formatFileSize(selectedFile.size)}</p>
             <p><strong>Type:</strong> {selectedFile.type}</p>
+            <p><strong>Upload Key:</strong> {uploadKey || 'Not set'}</p>
             <p><strong>Will be split into:</strong> {getEstimatedChunks(selectedFile)} chunks of ~{(CHUNK_SIZE / 1024 / 1024).toFixed(1)}MB each</p>
           </div>
         )}
@@ -221,7 +328,7 @@ function App() {
 
         <button
           onClick={handleUpload}
-          disabled={!selectedFile || uploading}
+          disabled={!selectedFile || !uploadKey.trim() || uploading}
           className="upload-button"
         >
           {uploading ? 'Uploading...' : 'Upload File'}
@@ -230,6 +337,42 @@ function App() {
         {uploadStatus && (
           <div className={`status ${uploadStatus.includes('successful') ? 'success' : 'error'}`}>
             {uploadStatus}
+          </div>
+        )}
+      </div>
+
+      <div className="download-container">
+        <h2>Download File</h2>
+        
+        <div className="key-input-container">
+          <label htmlFor="download-key" className="key-input-label">
+            Download Key:
+          </label>
+          <input
+            type="text"
+            id="download-key"
+            value={downloadKey}
+            onChange={handleDownloadKeyChange}
+            disabled={downloading}
+            placeholder="e.g., documents/my-file.pdf or images/photo-2024.jpg"
+            className="key-input"
+          />
+          <small className="key-input-hint">
+            Enter the exact S3 key of the file you want to download.
+          </small>
+        </div>
+
+        <button
+          onClick={handleDownload}
+          disabled={!downloadKey.trim() || downloading}
+          className="download-button"
+        >
+          {downloading ? 'Downloading...' : 'Download File'}
+        </button>
+
+        {downloadStatus && (
+          <div className={`status ${downloadStatus.includes('successful') ? 'success' : 'error'}`}>
+            {downloadStatus}
           </div>
         )}
       </div>

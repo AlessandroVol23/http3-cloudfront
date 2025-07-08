@@ -13,15 +13,30 @@ h1 {
 }
 
 .upload-container {
-  background: #f8f9fa;
+  background: white;
   border-radius: 12px;
   padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   margin-bottom: 2rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.download-container {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.download-container h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.5rem;
 }
 
 .file-input-container {
-  margin-bottom: 1.5rem;
+  margin-bottom: 20px;
 }
 
 #file-input {
@@ -62,27 +77,49 @@ h1 {
 }
 
 .upload-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.upload-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.upload-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.download-button {
   background: #28a745;
   color: white;
   border: none;
   padding: 12px 24px;
   border-radius: 8px;
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background-color 0.3s ease;
+  width: 100%;
   margin-top: 1rem;
 }
 
-.upload-button:hover:not(:disabled) {
-  background: #218838;
-  transform: translateY(-1px);
+.download-button:hover:not(:disabled) {
+  background: #1e7e34;
 }
 
-.upload-button:disabled {
-  background: #6c757d;
+.download-button:disabled {
+  background: #ccc;
   cursor: not-allowed;
-  transform: none;
 }
 
 /* Progress Container */
@@ -234,6 +271,45 @@ h1 {
   color: #6c757d;
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
+}
+
+.key-input-container {
+  margin-bottom: 20px;
+}
+
+.key-input-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.key-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  transition: border-color 0.3s ease;
+}
+
+.key-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.key-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.key-input-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #666;
+  font-style: italic;
 }
 
 @media (max-width: 768px) {
