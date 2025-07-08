@@ -1,7 +1,6 @@
 const express = require("express");
 const multer = require("multer");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-const { v4: uuidv4 } = require("uuid");
 
 const app = express();
 
@@ -47,9 +46,13 @@ app.use((req, res, next) => {
 // Middleware to parse JSON (but not form data - multer will handle that)
 app.use(express.json());
 
-app.post("/upload", upload.single('file'), async (req, res) => {
+app.post("/upload/:key", upload.single('file'), async (req, res) => {
   try {
+    // Extract the key from the URL parameter
+    const uploadKey = req.params.key;
+    
     console.log("=== UPLOAD REQUEST DEBUG ===");
+    console.log("Upload key:", uploadKey);
     console.log("Headers received:", JSON.stringify(req.headers, null, 2));
     console.log("Content-Type:", req.headers['content-type']);
     console.log("Content-Length:", req.headers['content-length']);
@@ -75,23 +78,23 @@ app.post("/upload", upload.single('file'), async (req, res) => {
       });
     }
 
-    // Generate unique filename
-    const fileExtension = req.file.originalname.split('.').pop();
-    const uniqueFileName = `${uuidv4()}.${fileExtension}`;
+    // Use the client-supplied key directly as the S3 key
+    const s3Key = uploadKey;
     
     // S3 upload parameters
     const uploadParams = {
       Bucket: BUCKET_NAME,
-      Key: uniqueFileName,
+      Key: s3Key,
       Body: req.file.buffer,
       ContentType: req.file.mimetype,
       Metadata: {
         originalName: req.file.originalname,
+        uploadKey: uploadKey,
         uploadTime: new Date().toISOString(),
       }
     };
 
-    console.log(`Uploading file ${req.file.originalname} as ${uniqueFileName} to bucket ${BUCKET_NAME}`);
+    console.log(`Uploading file ${req.file.originalname} as ${s3Key} to bucket ${BUCKET_NAME} with key ${uploadKey}`);
 
     // Upload to S3
     const command = new PutObjectCommand(uploadParams);
@@ -104,8 +107,9 @@ app.post("/upload", upload.single('file'), async (req, res) => {
       success: true,
       message: "File uploaded successfully",
       data: {
-        fileName: uniqueFileName,
+        s3Key: s3Key,
         originalName: req.file.originalname,
+        uploadKey: uploadKey,
         size: req.file.size,
         contentType: req.file.mimetype,
         bucket: BUCKET_NAME,
